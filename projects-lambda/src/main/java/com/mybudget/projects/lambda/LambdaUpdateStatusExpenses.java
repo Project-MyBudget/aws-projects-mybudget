@@ -4,8 +4,6 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 
 /**
  *
@@ -13,33 +11,40 @@ import java.time.format.DateTimeFormatter;
  */
 public class LambdaUpdateStatusExpenses {
 
+    private final String driver = "com.mysql.cj.jdbc.Driver";
+    private final String url = "jdbc:mysql://mybdb.cddkgvwhc4hh.us-east-1.rds.amazonaws.com/mybdb";
+    private final String username = "admin";
+    private final String password = "F1Avin_duPn3u";
+    
     public void executeUpdate() {
+        Connection conn = null;
+        
         try {
+            Class.forName(driver);
+
+            conn = DriverManager.getConnection(url, username, password);
             
-            String url = "jdbc:mysql://mybdb.cddkgvwhc4hh.us-east-1.rds.amazonaws.com:3306/mybdb";
-            String username = "admin";
-            String password = "F1Avin_duPn3u";
-
-            Connection conn = DriverManager.getConnection(url, username, password);
-            LocalDate hoje = LocalDate.now();
-            LocalDate mesAnterior = hoje.minusMonths(1);
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-            String dataMesAnterior = mesAnterior.format(formatter);
-
-            String sqlUpdate = "UPDATE TB_EXPENSES SET STATUS = ? WHERE MONTH(DATE_REFERENCE) = ? AND YEAR(DATE_REFERENCE) = ?";
+            String sqlUpdate = "UPDATE TB_EXPENSES SET STATUS = ? WHERE DATE_REFERENCE >= DATE_SUB(NOW(), INTERVAL 1 MONTH AND STATUS <> 'I');";
 
             PreparedStatement pstmt = conn.prepareStatement(sqlUpdate);
 
             pstmt.setString(1, "I");
-            pstmt.setInt(2, mesAnterior.getMonthValue());
-            pstmt.setInt(3, mesAnterior.getYear());
-            
+
             int rowsUpdated = pstmt.executeUpdate();
             System.out.println("Registros atualizados: " + rowsUpdated);
-            System.out.println("Mês que foi atualizado: " + dataMesAnterior);
 
-        } catch (SQLException e) {
+        } catch (ClassNotFoundException | SQLException e) {
             System.out.println("Erro ao executar o update: " + e.getMessage());
+            
+        } finally {
+            try {
+                if (conn != null) {
+                    conn.endRequest();
+                    conn.close();
+                }
+            } catch (SQLException ex) {
+                System.out.println("Erro ao fechar a conexão: " + ex.getMessage());
+            }
         }
     }
 }
